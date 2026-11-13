@@ -1,0 +1,64 @@
+name: Post remaining days
+
+on:
+  schedule:
+    # 毎日 日本時間 0:00（UTC 15:00）。混雑時は数分〜数十分遅れることがある
+    - cron: "0 15 * * *"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "対象日（YYYY-MM-DD）。空なら日本時間の今日"
+        required: false
+        default: ""
+        type: string
+      dry_run:
+        description: "確認モード（投稿せずに文面を表示するだけ）"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: post-remaining-days
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Post to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          POST_MODE: ${{ vars.POST_MODE }}
+          MILESTONE_DAYS: ${{ vars.MILESTONE_DAYS }}
+          SILENT: ${{ vars.SILENT }}
+          # 入力値はシェルに直接展開せず環境変数経由で渡す（インジェクション対策）
+          INPUT_DATE: ${{ inputs.date }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args=(--date "${INPUT_DATE}")
+          if [ "${INPUT_DRY_RUN}" = "true" ]; then
+            args+=(--dry-run)
+          fi
+          python3 countdown.py "${args[@]}"
+
+  # パブリックリポジトリのスケジュール実行は、60 日間リポジトリに動きがないと
+  # 自動で無効化される。毎回ワークフローを enable し直してタイマーをリセットする。
+  keepalive:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Re-enable this workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method PUT \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/post.yml/enable"
