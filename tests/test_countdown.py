@@ -12,6 +12,8 @@
 - [ ] 文面
     - 「2026年11月12日になりました。今年は残り50日です。あと13.7%です。」
     - 月日はゼロ埋めしない
+    - 12/31 は末尾に「今年も一年お疲れさまでした。」を足す（うるう年も同じ）
+    - 1/1 は日付の直後に「あけましておめでとうございます。」を入れる
 - [ ] JST の今日
     - UTC 15:00 は翌日の JST 0:00 になる
     - UTC 14:59 はまだ当日
@@ -93,8 +95,35 @@ class BuildMessageTest(unittest.TestCase):
 
     def test_month_and_day_are_not_zero_padded(self):
         self.assertEqual(
-            build_message(date(2026, 1, 1)),
-            "2026年1月1日になりました。今年は残り365日です。あと100.0%です。",
+            build_message(date(2026, 2, 3)),
+            "2026年2月3日になりました。今年は残り332日です。あと91.0%です。",
+        )
+
+    def test_new_years_eve_adds_closing_greeting(self):
+        self.assertEqual(
+            build_message(date(2026, 12, 31)),
+            "2026年12月31日になりました。今年は残り1日です。あと0.3%です。"
+            "今年も一年お疲れさまでした。",
+        )
+
+    def test_new_years_eve_in_leap_year(self):
+        self.assertEqual(
+            build_message(date(2028, 12, 31)),
+            "2028年12月31日になりました。今年は残り1日です。あと0.3%です。"
+            "今年も一年お疲れさまでした。",
+        )
+
+    def test_new_years_day_adds_greeting_after_date(self):
+        self.assertEqual(
+            build_message(date(2027, 1, 1)),
+            "2027年1月1日になりました。あけましておめでとうございます。"
+            "今年は残り365日です。あと100.0%です。",
+        )
+
+    def test_day_before_new_years_eve_has_no_greeting(self):
+        self.assertEqual(
+            build_message(date(2026, 12, 30)),
+            "2026年12月30日になりました。今年は残り2日です。あと0.5%です。",
         )
 
 

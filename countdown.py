@@ -19,7 +19,10 @@ JST = timezone(timedelta(hours=9), "JST")
 DEFAULT_MILESTONES = "100,50,30,10,1"
 # Discord のメッセージフラグ SUPPRESS_NOTIFICATIONS（通知を鳴らさない）
 SUPPRESS_NOTIFICATIONS = 1 << 12
-USER_AGENT = "DiscordBot (https://github.com/sloom/year-countdown-bot, 1.0)"
+# 元日と大晦日だけ文面に添えるあいさつ。言い回しを変えるときはここだけ直す
+NEW_YEARS_DAY_GREETING = "あけましておめでとうございます。"
+NEW_YEARS_EVE_GREETING = "今年も一年お疲れさまでした。"
+USER_AGENT ="DiscordBot (https://github.com/sloom/year-countdown-bot, 1.0)"
 
 
 def today_jst(now: datetime | None = None) -> date:
@@ -46,9 +49,11 @@ def build_message(d: date) -> str:
     """投稿する文面を組み立てる。"""
     remaining, total = remaining_days(d)
     percent = remaining_percent(remaining, total)
+    opening = NEW_YEARS_DAY_GREETING if (d.month, d.day) == (1, 1) else ""
+    closing = NEW_YEARS_EVE_GREETING if (d.month, d.day) == (12, 31) else ""
     return (
-        f"{d.year}年{d.month}月{d.day}日になりました。"
-        f"今年は残り{remaining}日です。あと{percent}%です。"
+        f"{d.year}年{d.month}月{d.day}日になりました。{opening}"
+        f"今年は残り{remaining}日です。あと{percent}%です。{closing}"
     )
 
 
